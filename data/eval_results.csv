@@ -1,0 +1,7 @@
+Scenario ID,Title,Baseline Risk,Baseline Status,Sentinel Risk,Sentinel Status,Memories Recalled,Interception Passed
+scenario-01,API v2 Legacy Auth Middleware Upgrade,NORMAL,FAILED,HIGH RISK,BLOCKED_BY_RISK,1,True
+scenario-02,Flaky Async Worker Queue Timeout Fix,NORMAL,FAILED,HIGH RISK,BLOCKED_BY_RISK,1,True
+scenario-03,Kubernetes Deployment ConfigMap Environment Variable Injection,NORMAL,FAILED,HIGH RISK,BLOCKED_BY_RISK,1,True
+scenario-04,PostgreSQL Table Schema Migration Index Lock,NORMAL,FAILED,HIGH RISK,BLOCKED_BY_RISK,1,True
+scenario-05,OAuth Refresh Token Signing Key Rotation,NORMAL,FAILED,HIGH RISK,BLOCKED_BY_RISK,1,True
+scenario-06,Kafka Event Consumer Deserialization Schema Update,NORMAL,FAILED,HIGH RISK,BLOCKED_BY_RISK,1,True

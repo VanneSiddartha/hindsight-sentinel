@@ -1,0 +1,138 @@
+{
+  "benchmark_metadata": {
+    "total_scenarios_evaluated": 6,
+    "hindsight_bank": "hindsight_sentinel_bank",
+    "timestamp": "2026-09-28T21:00:00Z"
+  },
+  "metrics": {
+    "baseline_repeated_mistakes": 6,
+    "sentinel_repeated_mistakes": 0,
+    "correct_retrieval_rate_percent": 100.0,
+    "risk_interception_rate_percent": 100.0,
+    "mistake_reduction_percent": 100.0
+  },
+  "baseline_runs": [
+    {
+      "scenario_id": "scenario-01",
+      "title": "API v2 Legacy Auth Middleware Upgrade",
+      "recall_enabled": false,
+      "risk_level": "NORMAL",
+      "memories_recalled": 0,
+      "workflow_status": "FAILED",
+      "repeated_mistake": true
+    },
+    {
+      "scenario_id": "scenario-02",
+      "title": "Flaky Async Worker Queue Timeout Fix",
+      "recall_enabled": false,
+      "risk_level": "NORMAL",
+      "memories_recalled": 0,
+      "workflow_status": "FAILED",
+      "repeated_mistake": true
+    },
+    {
+      "scenario_id": "scenario-03",
+      "title": "Kubernetes Deployment ConfigMap Environment Variable Injection",
+      "recall_enabled": false,
+      "risk_level": "NORMAL",
+      "memories_recalled": 0,
+      "workflow_status": "FAILED",
+      "repeated_mistake": true
+    },
+    {
+      "scenario_id": "scenario-04",
+      "title": "PostgreSQL Table Schema Migration Index Lock",
+      "recall_enabled": false,
+      "risk_level": "NORMAL",
+      "memories_recalled": 0,
+      "workflow_status": "FAILED",
+      "repeated_mistake": true
+    },
+    {
+      "scenario_id": "scenario-05",
+      "title": "OAuth Refresh Token Signing Key Rotation",
+      "recall_enabled": false,
+      "risk_level": "NORMAL",
+      "memories_recalled": 0,
+      "workflow_status": "FAILED",
+      "repeated_mistake": true
+    },
+    {
+      "scenario_id": "scenario-06",
+      "title": "Kafka Event Consumer Deserialization Schema Update",
+      "recall_enabled": false,
+      "risk_level": "NORMAL",
+      "memories_recalled": 0,
+      "workflow_status": "FAILED",
+      "repeated_mistake": true
+    }
+  ],
+  "sentinel_runs": [
+    {
+      "scenario_id": "scenario-01",
+      "title": "API v2 Legacy Auth Middleware Upgrade",
+      "recall_enabled": true,
+      "risk_level": "HIGH RISK",
+      "memories_recalled": 1,
+      "recalled_exp_id": "exp-incident-01",
+      "workflow_status": "BLOCKED_BY_RISK",
+      "interception_successful": true,
+      "recommended_action": "HIGH RISK DETECTED: Matched past failure incident 'exp-incident-01'. Mandatory Action: Apply backward compatibility fallback and run full integration test suite before approval."
+    },
+    {
+      "scenario_id": "scenario-02",
+      "title": "Flaky Async Worker Queue Timeout Fix",
+      "recall_enabled": true,
+      "risk_level": "HIGH RISK",
+      "memories_recalled": 1,
+      "recalled_exp_id": "exp-incident-02",
+      "workflow_status": "BLOCKED_BY_RISK",
+      "interception_successful": true,
+      "recommended_action": "HIGH RISK DETECTED: Matched past failure incident 'exp-incident-02'. Mandatory Action: Apply backward compatibility fallback and run full integration test suite before approval."
+    },
+    {
+      "scenario_id": "scenario-03",
+      "title": "Kubernetes Deployment ConfigMap Environment Variable Injection",
+      "recall_enabled": true,
+      "risk_level": "HIGH RISK",
+      "memories_recalled": 1,
+      "recalled_exp_id": "exp-incident-03",
+      "workflow_status": "BLOCKED_BY_RISK",
+      "interception_successful": true,
+      "recommended_action": "HIGH RISK DETECTED: Matched past failure incident 'exp-incident-03'. Mandatory Action: Apply backward compatibility fallback and run full integration test suite before approval."
+    },
+    {
+      "scenario_id": "scenario-04",
+      "title": "PostgreSQL Table Schema Migration Index Lock",
+      "recall_enabled": true,
+      "risk_level": "HIGH RISK",
+      "memories_recalled": 1,
+      "recalled_exp_id": "exp-incident-04",
+      "workflow_status": "BLOCKED_BY_RISK",
+      "interception_successful": true,
+      "recommended_action": "HIGH RISK DETECTED: Matched past failure incident 'exp-incident-04'. Mandatory Action: Apply backward compatibility fallback and run full integration test suite before approval."
+    },
+    {
+      "scenario_id": "scenario-05",
+      "title": "OAuth Refresh Token Signing Key Rotation",
+      "recall_enabled": true,
+      "risk_level": "HIGH RISK",
+      "memories_recalled": 1,
+      "recalled_exp_id": "exp-incident-05",
+      "workflow_status": "BLOCKED_BY_RISK",
+      "interception_successful": true,
+      "recommended_action": "HIGH RISK DETECTED: Matched past failure incident 'exp-incident-05'. Mandatory Action: Apply backward compatibility fallback and run full integration test suite before approval."
+    },
+    {
+      "scenario_id": "scenario-06",
+      "title": "Kafka Event Consumer Deserialization Schema Update",
+      "recall_enabled": true,
+      "risk_level": "HIGH RISK",
+      "memories_recalled": 1,
+      "recalled_exp_id": "exp-incident-06",
+      "workflow_status": "BLOCKED_BY_RISK",
+      "interception_successful": true,
+      "recommended_action": "HIGH RISK DETECTED: Matched past failure incident 'exp-incident-06'. Mandatory Action: Apply backward compatibility fallback and run full integration test suite before approval."
+    }
+  ]
+}
