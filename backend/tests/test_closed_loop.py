@@ -31,7 +31,8 @@ def test_complete_closed_loop_memory_cycle():
     assert result_run1.extracted_experience is not None, "Expected extracted_experience to be created post-run"
     
     extracted_exp = result_run1.extracted_experience
-    assert extracted_exp.source == "agent_run", f"Expected source 'agent_run', got {extracted_exp.source}"
+    assert extracted_exp.source == "workflow", f"Expected source 'workflow', got {extracted_exp.source}"
+    assert extracted_exp.workflow_id == result_run1.workflow_id
     assert extracted_exp.outcome == "FAILURE", f"Expected outcome 'FAILURE', got {extracted_exp.outcome}"
     assert "legacy auth" in extracted_exp.lesson.lower() or "legacy" in extracted_exp.lesson.lower(), "Expected lesson to mention legacy auth"
     

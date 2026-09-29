@@ -1,7 +1,12 @@
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
 from app.models.experience import ExperienceModel
-from app.experience.retain import retain_experience, LOCAL_EXPERIENCE_VAULT
+from app.experience.retain import (
+    LOCAL_EXPERIENCE_VAULT,
+    get_stored_experience,
+    list_stored_experiences,
+    retain_experience,
+)
 
 router = APIRouter(prefix="/experiences", tags=["experiences"])
 
@@ -14,10 +19,12 @@ def create_experience(exp: ExperienceModel):
 @router.get("", response_model=List[ExperienceModel])
 @router.get("/", response_model=List[ExperienceModel])
 def list_experiences():
-    return list(LOCAL_EXPERIENCE_VAULT.values())
+    return list_stored_experiences()
 
 @router.get("/{experience_id}", response_model=ExperienceModel)
 def get_experience(experience_id: str):
-    if experience_id not in LOCAL_EXPERIENCE_VAULT:
+    experience = get_stored_experience(experience_id)
+    if experience is None:
         raise HTTPException(status_code=404, detail=f"Experience '{experience_id}' not found")
-    return LOCAL_EXPERIENCE_VAULT[experience_id]
+    LOCAL_EXPERIENCE_VAULT[experience_id] = experience
+    return experience

@@ -2,10 +2,15 @@ import os
 import asyncio
 import logging
 import re
+import sqlite3
 from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
 from app.models.experience import ExperienceModel
-from app.experience.retain import LOCAL_EXPERIENCE_VAULT, get_hindsight_client
+from app.experience.retain import (
+    LOCAL_EXPERIENCE_VAULT,
+    get_hindsight_client,
+    list_stored_experiences,
+)
 
 load_dotenv()
 
@@ -90,6 +95,11 @@ def recall_experiences_with_status(
 
     # Fallback / Complement with local vault semantic search matching
     if not recalled_items:
+        try:
+            list_stored_experiences()
+        except (OSError, sqlite3.Error) as error:
+            logger.warning("Could not load persistent local experiences for recall: %s", error)
+
         def terms(value: str) -> set[str]:
             stop_words = {
                 "workflow", "type", "service", "version", "repository", "project",

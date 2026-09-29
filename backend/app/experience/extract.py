@@ -1,92 +1,75 @@
 from typing import Optional
-from app.models.experience import WorkflowContext, ExperienceModel
+
 from app.experience.retain import retain_experience
+from app.models.experience import ExperienceAgentActivity, ExperienceModel, WorkflowContext
+
 
 def extract_experience_from_workflow(context: WorkflowContext) -> Optional[ExperienceModel]:
-    """
-    Automatic Post-Run Experience Extraction Engine:
-    Analyzes completed workflow context steps, decisions, test logs, and security audits.
-    When a failure or meaningful outcome occurs, extracts a structured ExperienceModel (source='agent_run')
-    and automatically retains it in Hindsight vector memory bank.
-    """
-    # Check if workflow produced an outcome worth retaining as a lesson
-    planner_step = next((s for s in context.steps if s.agent_name == "planner"), None)
-    coder_step = next((s for s in context.steps if s.agent_name == "coder"), None)
-    tester_step = next((s for s in context.steps if s.agent_name == "tester"), None)
-    sec_step = next((s for s in context.steps if s.agent_name == "security"), None)
-
-    if tester_step is None or tester_step.status == "WARNING":
+    """Create an experience from observed workflow steps and their reported outcome."""
+    if not context.steps or context.outcome not in {"SUCCESS", "FAILURE", "BLOCKED", "ANALYZED"}:
         return None
 
-    task = context.task_description
-    is_failure = context.status == "FAILED" or tester_step.status == "FAILED"
-    
-    # Do not extract duplicate memory if identical experience already exists in recall
-    if context.recalled_experiences and not is_failure:
-        print("[Experience Extraction] Memory already retained from previous run. Skipping duplicate extraction.")
+    tester_step = next((step for step in context.steps if step.agent_name == "tester"), None)
+    if tester_step is None:
         return None
 
-    # Determine Root Cause & Lesson Learned
-    if is_failure:
-        outcome = "FAILURE"
-        if "legacy auth" in task.lower() or "auth middleware" in task.lower():
-            root_cause = "The controlled legacy-auth scenario omitted the X-Legacy-Auth fallback."
-            lesson = "Always preserve X-Legacy-Auth header fallback when upgrading API v2 authentication endpoints."
-            future_applicability = "API route migrations & auth middleware upgrades"
-            tags = ["legacy auth", "auth middleware", "api v2", context.service_name]
-        elif "async" in task.lower() or "flaky" in task.lower():
-            root_cause = "The controlled worker scenario omitted connection-pool retry handling."
-            lesson = "Enforce 300ms exponential retry policy on all async worker database connection pools."
-            future_applicability = "Async queue & event worker pool configurations"
-            tags = ["async worker", "flaky test", "race condition", context.service_name]
-        elif "env" in task.lower() or "misconfig" in task.lower():
-            root_cause = "The controlled configuration scenario lacked the required environment setting."
-            lesson = "Inject fallback default values directly in container initialization scripts."
-            future_applicability = "Kubernetes manifest secret & env variable injections"
-            tags = ["env variable", "misconfig", "k8s", context.service_name]
-        else:
-            root_cause = "The controlled workflow simulation reported a validation failure."
-            lesson = f"Verify configuration boundaries and test edge cases for {task}."
-            future_applicability = f"{context.service_name} deployments"
-            tags = [context.service_name, "devops"]
+    planner_step = next((step for step in context.steps if step.agent_name == "planner"), None)
+    coder_step = next((step for step in context.steps if step.agent_name == "coder"), None)
+    validation = tester_step.metadata.get("test_output") or tester_step.decision
+
+    if context.outcome == "FAILURE":
+        lesson = f"Validation reported a failure: {tester_step.decision}"
+    elif context.outcome == "SUCCESS":
+        lesson = f"Validation reported success: {tester_step.decision}"
+    elif context.outcome == "BLOCKED":
+        lesson = f"The workflow was blocked by risk assessment: {context.recommended_action or context.status}."
     else:
-        outcome = "SUCCESS"
-        root_cause = "No failure was reported by the controlled workflow scenario."
-        if context.recalled_experiences:
-            matched_exp = context.recalled_experiences[0]
-            lesson = f"Successfully mitigated risk by applying recalled lesson from [{matched_exp.get('experience_id')}]: {matched_exp.get('lesson')}"
-        else:
-            lesson = f"The controlled workflow scenario for {task} completed without a reported failure."
-        future_applicability = f"{context.service_name} tasks"
-        tags = [context.service_name, "successful_run"]
+        lesson = f"Repository validation was not run: {tester_step.decision}"
 
-    workflow_context = (
-        f"{context.workflow_type.replace('_', ' ').title()} of {context.service_name} "
-        f"{context.version} in {context.environment}; target "
-        f"{context.deployment_target or 'not provided'}; project "
-        f"{context.repository or 'not provided'}. Task: {task}"
-    )
-    exp = ExperienceModel(
-        context=workflow_context,
+    experience = ExperienceModel(
+        context=(
+            f"{context.workflow_type.replace('_', ' ').title()} of {context.service_name} "
+            f"{context.version} in {context.environment}. Task: {context.task_description}"
+        ),
         service_name=context.service_name,
-        agents_involved=["planner", "coder", "tester", "security"],
-        decision=planner_step.decision if planner_step else "Executed pipeline task",
-        action=coder_step.action_taken if coder_step else "Applied code patch",
-        validation=tester_step.metadata.get("test_output", "Validation completed") if tester_step else "Tested",
-        outcome=outcome,
-        root_cause=root_cause,
+        agents_involved=list(dict.fromkeys(step.agent_name for step in context.steps)),
+        decision=planner_step.decision if planner_step else "No planner decision was recorded.",
+        action=coder_step.action_taken if coder_step else "No coder action was recorded.",
+        validation=validation,
+        outcome=context.outcome,
+        root_cause=None,
         lesson=lesson,
-        future_applicability=future_applicability,
-        tags=tags,
-        source="agent_run"  # Real experience generated by agent workflow!
+        future_applicability=f"{context.workflow_type.replace('_', ' ')} workflows for {context.service_name}",
+        workflow_id=context.workflow_id,
+        workflow_type=context.workflow_type,
+        task_description=context.task_description,
+        version=context.version,
+        environment=context.environment,
+        agent_activities=[
+            ExperienceAgentActivity(
+                agent_name=step.agent_name,
+                decision=step.decision,
+                action=step.action_taken,
+                status=step.status,
+            )
+            for step in context.steps
+        ],
+        tags=[context.service_name, context.workflow_type, context.outcome.lower()],
+        source="workflow",
     )
 
-    # Retain in Hindsight Vector Memory Bank
-    retention = retain_experience(exp)
-    context.extracted_experience = exp
-    context.retention_status = "remote" if retention["remote_synced"] else "local_only"
+    retention = retain_experience(experience)
+    context.extracted_experience = experience
+    context.metadata_status = retention["metadata_status"]
+    context.hindsight_retention_status = retention["hindsight_status"]
+    context.retention_status = (
+        "remote"
+        if retention["remote_synced"]
+        else "local_only"
+        if retention["metadata_saved"]
+        else "temporary"
+    )
     context.hindsight_available = bool(retention["remote_synced"])
-    if not retention["remote_synced"]:
+    if retention["message"]:
         context.hindsight_message = retention["message"]
-    print(f"[Experience Extraction] Extracted & retained new Experience (ID: '{exp.experience_id}', Outcome: '{exp.outcome}', Source: 'agent_run').")
-    return exp
+    return experience

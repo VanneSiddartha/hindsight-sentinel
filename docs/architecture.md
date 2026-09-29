@@ -49,9 +49,13 @@
 - **Security Agent (`security.py`):** Conducts security compliance audit & gates deployments when posture is `HIGH RISK`.
 
 ### 2. Experience Memory Engine (`backend/app/experience/`)
-- **Retain (`retain.py`):** Saves postmortem lessons, root causes, decisions, and future applicability tags into Vectorize Hindsight memory bank (`hindsight_sentinel_bank`).
+- **Extract (`extract.py`):** Builds workflow experiences from recorded agent decisions/actions and tester output. Analysis-only runs are recorded as `ANALYZED`; no unobserved success, root cause, or lesson is asserted.
+- **Retain (`retain.py`):** Sends each experience to Vectorize Hindsight (`hindsight_sentinel_bank`) and separately stores display metadata in SQLite at `data/experiences.sqlite3`. `HINDSIGHT_EXPERIENCE_DB_PATH` can override the local index path.
 - **Recall (`recall.py`):** Conducts semantic vector search over historical incident memories relevant to the active context.
 - **Reflect (`reflect.py`):** Performs LLM reasoning over recalled memories to extract risk indicators and corrective actions.
+- **Experience API (`api/experiences.py`):** Lists metadata from SQLite, including real workflow experiences and idempotently seeded demo records. Metadata persistence and remote Hindsight retention statuses are reported separately.
+
+The SQLite index allows Experience History to load and display records across refreshes and backend restarts. Hindsight remains the persistent vector-memory layer; if its Retain call fails, the record remains available from SQLite and is explicitly marked as not retained remotely.
 
 ### 3. Explainable Risk Engine (`backend/app/risk/risk_engine.py`)
 - **NORMAL:** 0 matching past failure patterns. Exact phrase: `"No known risk detected."`

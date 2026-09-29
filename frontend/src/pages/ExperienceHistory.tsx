@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ApiRequestError, fetchExperiences, ExperienceModel } from '../services/api';
-import { History, Search, Filter, AlertCircle, CheckCircle, Lightbulb, Tag, ChevronRight, Brain, Database } from 'lucide-react';
+import { History, Search, Tag, ChevronRight, Brain, Database } from 'lucide-react';
 import ExperienceDetail from './ExperienceDetail';
 
 export default function ExperienceHistory() {
@@ -9,6 +9,7 @@ export default function ExperienceHistory() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedExp, setSelectedExp] = useState<ExperienceModel | null>(null);
   const [error, setError] = useState('');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'workflow' | 'demo'>('all');
 
   const loadExperiences = async () => {
     try {
@@ -29,11 +30,18 @@ export default function ExperienceHistory() {
     loadExperiences();
   }, []);
 
-  const filtered = experiences.filter((e) =>
-    e.context.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    e.service_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    e.lesson.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtered = experiences.filter((e) => {
+    const isWorkflow = e.source === 'workflow' || e.source === 'agent_run';
+    const isDemo = e.source === 'demo' || e.source === 'seed';
+    const matchesSource = sourceFilter === 'all' ||
+      (sourceFilter === 'workflow' && isWorkflow) ||
+      (sourceFilter === 'demo' && isDemo);
+    return matchesSource && (
+      e.context.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.service_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.lesson.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
   if (selectedExp) {
     return <ExperienceDetail experience={selectedExp} onBack={() => setSelectedExp(null)} />;
@@ -48,7 +56,7 @@ export default function ExperienceHistory() {
             <span>Experience Memory Vault</span>
           </h2>
           <p className="text-xs text-gray-400 mt-1">
-            Retained organizational memory & postmortem lessons powered by Vectorize Hindsight
+            Persisted workflow experiences and demo examples; remote Hindsight status is shown per experience
           </p>
         </div>
 
@@ -70,6 +78,16 @@ export default function ExperienceHistory() {
               className="w-full pl-9 pr-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-xs text-gray-200 focus:outline-none focus:border-indigo-500 transition"
             />
           </div>
+          <select
+            aria-label="Filter experiences by source"
+            value={sourceFilter}
+            onChange={(event) => setSourceFilter(event.target.value as 'all' | 'workflow' | 'demo')}
+            className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-xs text-gray-200 focus:border-indigo-500 focus:outline-none"
+          >
+            <option value="all">All Experiences</option>
+            <option value="workflow">My Workflow Experiences</option>
+            <option value="demo">Demo Experiences</option>
+          </select>
         </div>
       </div>
 
@@ -95,7 +113,7 @@ export default function ExperienceHistory() {
               key={exp.experience_id}
               onClick={() => setSelectedExp(exp)}
               className={`border p-4 rounded-xl cursor-pointer transition flex flex-col justify-between group shadow-sm ${
-                exp.source === 'agent_run'
+                exp.source === 'workflow' || exp.source === 'agent_run'
                   ? 'bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-gray-900/90 border-indigo-500/60 hover:border-indigo-400'
                   : 'bg-gray-900/60 border-gray-800 hover:border-gray-700'
               }`}
@@ -106,14 +124,15 @@ export default function ExperienceHistory() {
                     <span className="font-mono text-xs font-bold text-indigo-400">
                       [{exp.experience_id}]
                     </span>
-                    {exp.source === 'agent_run' ? (
+                    {exp.source === 'workflow' || exp.source === 'agent_run' ? (
                       <span className="flex items-center space-x-1 px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 rounded text-[10px] font-bold">
                         <Brain className="w-3 h-3 text-indigo-400" />
-                        <span>AGENT RUN MEMORY</span>
+                        <span>WORKFLOW</span>
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 bg-gray-800 text-gray-400 border border-gray-700 rounded text-[10px] font-bold">
-                        DEMO SEED
+                      <span className="flex items-center space-x-1 px-2 py-0.5 bg-gray-800 text-gray-400 border border-gray-700 rounded text-[10px] font-bold">
+                        <Database className="w-3 h-3" />
+                        <span>DEMO</span>
                       </span>
                     )}
                   </div>
@@ -122,7 +141,9 @@ export default function ExperienceHistory() {
                     className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                       exp.outcome === 'FAILURE'
                         ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                        : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : exp.outcome === 'SUCCESS'
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                     }`}
                   >
                     {exp.outcome}
@@ -139,6 +160,7 @@ export default function ExperienceHistory() {
                 <div className="flex items-center space-x-1">
                   <Tag className="w-3 h-3 text-gray-600" />
                   <span>{exp.service_name}</span>
+                  {exp.workflow_id && <span className="font-mono">· {exp.workflow_id}</span>}
                 </div>
                 <div className="flex items-center text-indigo-400 font-medium group-hover:translate-x-1 transition-transform">
                   <span>View Details</span>

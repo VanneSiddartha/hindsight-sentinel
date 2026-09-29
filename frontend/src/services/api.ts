@@ -90,16 +90,29 @@ export interface ExperienceModel {
   context: string;
   service_name: string;
   agents_involved: string[];
+  agent_activities?: Array<{
+    agent_name: string;
+    decision: string;
+    action: string;
+    status: string;
+  }>;
   decision: string;
   action: string;
   validation: string;
-  outcome: 'SUCCESS' | 'FAILURE';
+  outcome: 'SUCCESS' | 'FAILURE' | 'BLOCKED' | 'ANALYZED' | string;
   root_cause?: string;
   lesson: string;
   future_applicability: string;
+  workflow_id?: string;
+  workflow_type?: string;
+  task_description?: string;
+  version?: string;
+  environment?: string;
   timestamp: string;
   tags: string[];
-  source?: 'agent_run' | 'seed';
+  source?: 'workflow' | 'demo' | 'agent_run' | 'seed' | string;
+  metadata_status?: string;
+  hindsight_status?: string;
 }
 
 export interface WorkflowEvidence {
@@ -163,7 +176,9 @@ export interface WorkflowContext {
   hindsight_available: boolean;
   hindsight_message?: string;
   hindsight_reflection?: string;
-  retention_status: 'not_attempted' | 'remote' | 'local_only';
+  retention_status: 'not_attempted' | 'remote' | 'local_only' | 'temporary';
+  metadata_status: string;
+  hindsight_retention_status: string;
   summary_lesson?: string;
   steps: AgentStep[];
   extracted_experience?: ExperienceModel;
@@ -199,7 +214,7 @@ export async function fetchWorkflowById(id: string): Promise<WorkflowContext> {
 }
 
 export async function fetchExperiences(): Promise<ExperienceModel[]> {
-  const result = await requestJson<unknown>('/experiences');
+  const result = await requestJson<unknown>('/experiences', { cache: 'no-store' });
   if (!Array.isArray(result)) {
     throw new ApiRequestError('The backend returned an unexpected /experiences response; expected a JSON array.', 'response');
   }

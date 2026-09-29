@@ -1,6 +1,9 @@
+import logging
 from typing import List
 from app.models.experience import ExperienceModel
-from app.experience.retain import retain_experience
+from app.experience.retain import get_stored_experience, retain_experience
+
+logger = logging.getLogger(__name__)
 
 SEED_EXPERIENCES = [
     ExperienceModel(
@@ -16,7 +19,7 @@ SEED_EXPERIENCES = [
         lesson="Always preserve X-Legacy-Auth header fallback when upgrading API v2 endpoints",
         future_applicability="API route migrations & auth middleware upgrades",
         tags=["legacy auth", "auth middleware", "api v2", "payment-auth"],
-        source="seed"
+        source="demo"
     ),
     ExperienceModel(
         experience_id="exp-incident-02",
@@ -31,7 +34,7 @@ SEED_EXPERIENCES = [
         lesson="Enforce 300ms exponential retry policy on all async worker database connections",
         future_applicability="Async queue & event worker pool configurations",
         tags=["flaky test", "async worker", "race condition"],
-        source="seed"
+        source="demo"
     ),
     ExperienceModel(
         experience_id="exp-incident-03",
@@ -46,7 +49,7 @@ SEED_EXPERIENCES = [
         lesson="Inject fallback default value (DB_POOL_SIZE=10) directly in container initialization script",
         future_applicability="Kubernetes manifest environment secret injections",
         tags=["env variable", "misconfig", "k8s"],
-        source="seed"
+        source="demo"
     ),
     ExperienceModel(
         experience_id="exp-incident-04",
@@ -61,7 +64,7 @@ SEED_EXPERIENCES = [
         lesson="Always execute large table index builds using CREATE INDEX CONCURRENTLY",
         future_applicability="Database schema migrations on high volume tables",
         tags=["db migration", "index lock", "postgres"],
-        source="seed"
+        source="demo"
     ),
     ExperienceModel(
         experience_id="exp-incident-05",
@@ -76,7 +79,7 @@ SEED_EXPERIENCES = [
         lesson="Maintain dual active signing key rotation window for 48 hours during secret rotation",
         future_applicability="OAuth secret rotation & JWT signing key updates",
         tags=["oauth", "jwt", "secret rotation"],
-        source="seed"
+        source="demo"
     ),
     ExperienceModel(
         experience_id="exp-incident-06",
@@ -91,17 +94,19 @@ SEED_EXPERIENCES = [
         lesson="Define schema compatibility mode to FULL_TRANSITIONAL before altering Kafka event payloads",
         future_applicability="Event-driven streaming schema migrations",
         tags=["kafka", "event stream", "schema mismatch"],
-        source="seed"
+        source="demo"
     )
 ]
 
 def seed_hindsight_experiences() -> int:
     """
-    Seeds Hindsight experience memory vault with realistic synthetic incident memories.
+    Seeds demo incident memories once, without replacing workflow-generated records.
     """
     count = 0
     for exp in SEED_EXPERIENCES:
+        if get_stored_experience(exp.experience_id) is not None:
+            continue
         retain_experience(exp)
         count += 1
-    print(f"[Hindsight Seed] Successfully seeded {count} incident memories into Hindsight vault.")
+    logger.info("Added %s new demo memories to the experience store.", count)
     return count

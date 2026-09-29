@@ -18,7 +18,7 @@ interface EvidenceCardProps {
   evidence: EvidenceItem[];
   recalledExperiences?: EvidenceItem[];
   extractedExperience?: ExperienceModel;
-  retentionStatus?: 'not_attempted' | 'remote' | 'local_only';
+  retentionStatus?: 'not_attempted' | 'remote' | 'local_only' | 'temporary';
 }
 
 export default function EvidenceCard({
@@ -95,7 +95,7 @@ export default function EvidenceCard({
                 <div className="bg-indigo-950/30 p-2.5 rounded border border-indigo-800/40">
                   <span className="text-indigo-400 text-[10px] font-bold uppercase flex items-center space-x-1 mb-1">
                     <Lightbulb className="w-3 h-3 text-amber-400" />
-                    <span>Hindsight Lesson Retained</span>
+                    <span>Prior Experience Lesson</span>
                   </span>
                   <p className="text-indigo-200 text-[11px] leading-relaxed font-medium">{item.lesson}</p>
                 </div>
@@ -134,15 +134,17 @@ export default function EvidenceCard({
             <div className="flex items-center space-x-2">
               <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
               <span className="text-xs font-bold text-white uppercase tracking-wider">
-              New Experience Learned
+              New Experience Captured
               </span>
             </div>
             <span className="px-2 py-0.5 bg-indigo-500/30 text-indigo-200 border border-indigo-400/50 rounded font-mono text-[10px] font-bold">
               {retentionStatus === 'remote'
-                ? `Hindsight Retained: YES · source=${extractedExperience.source || 'agent_run'}`
+                ? `Hindsight retained · source=${extractedExperience.source || 'workflow'}`
                 : retentionStatus === 'local_only'
-                  ? 'Local vault only · remote Hindsight unavailable'
-                  : 'Retention status unavailable'}
+                  ? 'Metadata persisted locally · Hindsight not retained'
+                  : retentionStatus === 'temporary'
+                    ? 'Temporary in-memory only · not persistent'
+                    : 'Retention was not attempted'}
             </span>
           </div>
 
@@ -168,7 +170,7 @@ export default function EvidenceCard({
             )}
 
             <div className="bg-indigo-950/60 p-2.5 rounded border border-indigo-700/60">
-              <span className="text-amber-300 font-bold uppercase text-[10px] block mb-0.5">Lesson Retained for Future Tasks</span>
+              <span className="text-amber-300 font-bold uppercase text-[10px] block mb-0.5">Lesson for Future Tasks</span>
               <p className="text-indigo-100 text-[11px] font-medium leading-relaxed">{extractedExperience.lesson}</p>
             </div>
           {extractedExperience.future_applicability && (

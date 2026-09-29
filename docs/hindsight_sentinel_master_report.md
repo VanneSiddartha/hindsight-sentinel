@@ -123,7 +123,7 @@ Each agent in `backend/app/agents/` plays a specialized role in the execution pi
 ## 5. How Experience Memory is Shared, Stored & Retained
 
 ### Data Shape (`ExperienceModel`)
-Every experience memory contains 12 structured fields:
+Workflow experiences include the following structured fields:
 ```python
 class ExperienceModel(BaseModel):
     experience_id: str          # e.g., "exp-incident-01"
@@ -133,18 +133,27 @@ class ExperienceModel(BaseModel):
     decision: str               # Original agent decision
     action: str                 # Applied code patch
     validation: str             # Test output / failure log
-    outcome: str                # "FAILURE" or "SUCCESS"
-    root_cause: str             # Technical root cause explanation
-    lesson: str                 # Retained postmortem rule
+    outcome: str                # Observed workflow outcome, including "ANALYZED"
+    root_cause: Optional[str]   # Only set when established by observed evidence
+    lesson: str                 # Derived from recorded decisions and validation
     future_applicability: str   # Scope of future applicability
+    workflow_id: Optional[str]  # Originating workflow, when applicable
+    workflow_type: Optional[str]
+    task_description: Optional[str]
+    version: Optional[str]
+    environment: Optional[str]
+    agent_activities: List[ExperienceAgentActivity]
     tags: List[str]             # Context tags (e.g., ["legacy auth", "api v2"])
-    source: str                 # "agent_run" (real agent run) or "seed" (demo seed)
+    source: str                 # "workflow" (real workflow) or "demo" (seeded sample)
+    metadata_status: str        # "persisted" or "temporary"
+    hindsight_status: str       # Remote retain result
 ```
 
 ### Vector Memory Indexing & Hindsight SDK
-1. **Retention (`retain.py`):** Calls `client.retain()` on Vectorize Hindsight API with `bank_id="hindsight_sentinel_bank"`. Text and metadata are embedded and indexed.
+1. **Retention (`retain.py`):** Stores list/detail metadata in SQLite (`data/experiences.sqlite3`) and calls `client.retain()` on Vectorize Hindsight with the configured bank ID. Local metadata and Hindsight statuses remain distinct.
 2. **Pre-Execution Retrieval (`recall.py`):** Before agents run, `client.recall(bank_id=..., query=task)` performs vector semantic search to retrieve the top matching historical postmortems.
-3. **Automatic Post-Run Extraction (`extract.py`):** When a workflow finishes, the system analyzes the run. If a failure or new lesson occurred, it automatically constructs a new `ExperienceModel(source="agent_run")` and calls `client.retain()` so future tasks immediately learn from it.
+3. **Automatic Post-Run Extraction (`extract.py`):** Completed workflows with a reported outcome produce an `ExperienceModel(source="workflow")` associated with the workflow ID. Analysis-only runs are labelled `ANALYZED`; root causes are left empty unless observed evidence establishes them.
+4. **Experience History (`GET /experiences`):** Reads persisted SQLite metadata, returning workflow and demo records together. Demo seeding is idempotent and does not replace workflow records.
 
 ---
 
@@ -177,11 +186,11 @@ Hindsight Sentinel avoids black-box ambiguity by enforcing an explainable rule e
 ### Key UI Features
 1. **Top Hero Risk Badge:** Color-coded status banner (`NORMAL` green, `CAUTION` yellow, `HIGH RISK` red) updating dynamically.
 2. **1-Click Closed-Loop Replay Demo Button:** Runs the 2-step demonstration:
-   - **Run 1 (Unlearned / Memory OFF):** Strips legacy headers → Test FAILS → New experience extracted & retained in Hindsight (`source=agent_run`).
+   - **Run 1 (Unlearned / Memory OFF):** The controlled legacy-auth scenario fails → a workflow experience is extracted and retained when Hindsight is configured (`source=workflow`).
    - **Run 2 (Memory Active / Memory ON):** Recalls newly retained memory → Planner preserves fallback → Tests PASS!
 3. **Left Panel (Live Agent Pipeline):** Displays live step execution with **Hindsight Memory Influenced** badges and code diffs.
 4. **Right Panel (Hindsight Evidence & Extracted Experience):** Displays recalled incident cards and the **New Experience Extracted & Retained** card.
-5. **Experience Memory Vault (`ExperienceHistory.tsx`):** Searchable archive of all postmortems with root cause analysis, decisions, and applicability tags.
+5. **Experience Memory Vault (`ExperienceHistory.tsx`):** Searchable, source-filterable archive of persisted workflow and demo experiences with their recorded validation, agent activity, retention status, and applicability details.
 
 ---
 
@@ -201,12 +210,13 @@ Results are stored in [`data/eval_results.json`](file:///c:/BOT/data/eval_result
 
 ## 9. Test Suite Verification Summary
 
-All 5 Pytest suites passed 100%:
+Backend tests cover the following paths:
 - `tests/test_closed_loop.py` — Verifies 2-run memory learning cycle.
 - `tests/test_step2_pipeline.py` — Verifies 4-agent sequential pipeline.
 - `tests/test_step3_experience.py` — Verifies retain, recall, reflect methods.
 - `tests/test_step4_risk_engine.py` — Verifies risk engine rules & exact phrases.
 - `tests/test_step6_replay.py` — Verifies baseline vs interception replay logic.
+- `tests/test_experience_persistence.py` — Verifies workflow extraction, Hindsight success/failure reporting, API listing, demo coexistence, deduplication, and restart persistence.
 
 ---
 
