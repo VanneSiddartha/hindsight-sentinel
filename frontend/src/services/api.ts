@@ -115,6 +115,23 @@ export interface ExperienceModel {
   hindsight_status?: string;
 }
 
+export function getWorkflowExperienceMode(
+  experience: ExperienceModel,
+): 'baseline' | 'memory-informed' | null {
+  const plannerActivity = experience.agent_activities?.find(
+    (activity) => activity.agent_name === 'planner',
+  );
+  if (!plannerActivity) return null;
+
+  const action = plannerActivity.action.toLowerCase();
+  const decision = plannerActivity.decision.toLowerCase();
+  if (action.includes('memory-informed') || decision.includes('[memory influence')) {
+    return 'memory-informed';
+  }
+  if (action.includes('baseline')) return 'baseline';
+  return null;
+}
+
 export interface WorkflowEvidence {
   source: 'current' | 'historical';
   description: string;

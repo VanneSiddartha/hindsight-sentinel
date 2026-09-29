@@ -10,7 +10,7 @@ from app.experience.retain import LOCAL_EXPERIENCE_VAULT
 
 def test_complete_closed_loop_memory_cycle():
     print("\n=================================================================")
-    print(" Hindsight Sentinel Closed-Loop Memory Test (Run 1 -> Run 2)     ")
+    print(" AgentVault Closed-Loop Memory Test (Run 1 -> Run 2)             ")
     print("=================================================================")
 
     task_description = "Upgrade auth middleware for API v2 migration"

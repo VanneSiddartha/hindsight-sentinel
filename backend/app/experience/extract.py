@@ -27,6 +27,7 @@ def extract_experience_from_workflow(context: WorkflowContext) -> Optional[Exper
         lesson = f"Repository validation was not run: {tester_step.decision}"
 
     experience = ExperienceModel(
+        experience_id=f"exp-{context.workflow_id}",
         context=(
             f"{context.workflow_type.replace('_', ' ').title()} of {context.service_name} "
             f"{context.version} in {context.environment}. Task: {context.task_description}"

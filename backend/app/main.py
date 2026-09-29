@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI(
-    title="Hindsight Sentinel API",
+    title="AgentVault API",
     description="Multi-agent workflow risk intelligence powered by Hindsight experience memory",
     version="1.0.0"
 )
@@ -89,10 +89,6 @@ app.include_router(workflows_router)
 app.include_router(experiences_router)
 app.include_router(risk_router)
 
-@app.on_event("startup")
-def startup_event():
-    seed_hindsight_experiences()
-
 @app.post("/experiences/seed")
 def seed_endpoint():
     count = seed_hindsight_experiences()
@@ -102,7 +98,7 @@ def seed_endpoint():
 def health_check():
     return {
         "status": "ok",
-        "system": "Hindsight Sentinel",
+        "system": "AgentVault",
         "hindsight_configured": bool(os.getenv("HINDSIGHT_API_KEY")),
         "groq_configured": bool(os.getenv("GROQ_API_KEY"))
     }

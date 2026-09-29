@@ -16,9 +16,9 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-lg font-extrabold bg-gradient-to-r from-white via-gray-100 to-indigo-400 bg-clip-text text-transparent tracking-tight">
-              Hindsight Sentinel
+              AgentVault
             </h1>
-            <p className="text-[11px] text-gray-400 font-medium">Agentic Workflow & Risk Intelligence Platform</p>
+            <p className="text-[11px] text-gray-400 font-medium">Shared experience and risk intelligence for AI agent teams.</p>
           </div>
         </div>
 
@@ -32,7 +32,7 @@ export default function App() {
             }`}
           >
             <Activity className="w-4 h-4" />
-            <span>Sentinel Dashboard</span>
+            <span>AgentVault Dashboard</span>
           </button>
 
           <button
@@ -57,7 +57,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-gray-800 py-4 px-6 text-center text-xs text-gray-500 bg-gray-950/50">
-        Hindsight Sentinel &bull; Powered by Vectorize Hindsight Experience Engine & Groq LLM
+        AgentVault &bull; Powered by Vectorize Hindsight Experience Engine & Groq LLM
       </footer>
     </div>
   );

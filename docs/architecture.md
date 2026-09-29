@@ -1,7 +1,7 @@
-# Hindsight Sentinel — Architecture & Technical Blueprint
+# AgentVault — Architecture & Technical Blueprint
 
 ## Executive Summary
-**Hindsight Sentinel** is an open-source agentic workflow & risk intelligence system. It prevents repeated software incidents and agentic deployment failures by anchoring autonomous multi-agent pipelines (Planner → Coder → Tester → Security) to an organizational experience memory powered by **Vectorize Hindsight**.
+**AgentVault** is an open-source agentic workflow & risk intelligence system. It prevents repeated software incidents and agentic deployment failures by anchoring autonomous multi-agent pipelines (Planner → Coder → Tester → Security) to an organizational experience memory powered by **Vectorize Hindsight**.
 
 ---
 
@@ -50,10 +50,10 @@
 
 ### 2. Experience Memory Engine (`backend/app/experience/`)
 - **Extract (`extract.py`):** Builds workflow experiences from recorded agent decisions/actions and tester output. Analysis-only runs are recorded as `ANALYZED`; no unobserved success, root cause, or lesson is asserted.
-- **Retain (`retain.py`):** Sends each experience to Vectorize Hindsight (`hindsight_sentinel_bank`) and separately stores display metadata in SQLite at `data/experiences.sqlite3`. `HINDSIGHT_EXPERIENCE_DB_PATH` can override the local index path.
+- **Retain (`retain.py`):** Sends each experience to Vectorize Hindsight (`hindsight_sentinel_bank`) and separately stores display metadata in SQLite at `data/experiences.sqlite3`. Workflow retention is idempotent by `workflow_id` as well as `experience_id`. `HINDSIGHT_EXPERIENCE_DB_PATH` can override the local index path.
 - **Recall (`recall.py`):** Conducts semantic vector search over historical incident memories relevant to the active context.
 - **Reflect (`reflect.py`):** Performs LLM reasoning over recalled memories to extract risk indicators and corrective actions.
-- **Experience API (`api/experiences.py`):** Lists metadata from SQLite, including real workflow experiences and idempotently seeded demo records. Metadata persistence and remote Hindsight retention statuses are reported separately.
+- **Experience API (`api/experiences.py`):** Lists unique metadata records from SQLite, including workflow experiences and optional demo records. Demo memories are added only through the explicit `POST /experiences/seed` action; application startup and history reads do not seed data. Metadata persistence and remote Hindsight retention statuses are reported separately.
 
 The SQLite index allows Experience History to load and display records across refreshes and backend restarts. Hindsight remains the persistent vector-memory layer; if its Retain call fails, the record remains available from SQLite and is explicitly marked as not retained remotely.
 
@@ -67,7 +67,7 @@ The SQLite index allows Experience History to load and display records across re
 ## Evaluation Benchmark Results
 Evaluated across 6 realistic production incident scenarios:
 
-| Metric | Result | Baseline (No Memory) | Sentinel (Hindsight Memory) |
+| Metric | Result | Baseline (No Memory) | AgentVault (Hindsight Memory) |
 |---|---|---|---|
 | **Correct Retrieval Rate** | **100.0%** | N/A | 6/6 scenarios matched |
 | **Risk Interception Rate** | **100.0%** | N/A | 6/6 risks intercepted |

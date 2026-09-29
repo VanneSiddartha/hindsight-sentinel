@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { ApiRequestError, fetchExperiences, ExperienceModel } from '../services/api';
+import {
+  ApiRequestError,
+  fetchExperiences,
+  getWorkflowExperienceMode,
+  ExperienceModel,
+} from '../services/api';
 import { History, Search, Tag, ChevronRight, Brain, Database } from 'lucide-react';
 import ExperienceDetail from './ExperienceDetail';
 
@@ -56,7 +61,7 @@ export default function ExperienceHistory() {
             <span>Experience Memory Vault</span>
           </h2>
           <p className="text-xs text-gray-400 mt-1">
-            Persisted workflow experiences and demo examples; remote Hindsight status is shown per experience
+            Persisted workflow experiences and demo examples; repeat runs are labeled by memory mode
           </p>
         </div>
 
@@ -103,72 +108,94 @@ export default function ExperienceHistory() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 border border-dashed border-gray-800 rounded-xl bg-gray-950/40">
           <History className="w-10 h-10 text-gray-600 mx-auto mb-2" />
-          <p className="text-sm font-semibold text-gray-400">No experiences found</p>
-          <p className="text-xs text-gray-600 mt-1">Run a workflow or seed memories to populate vault.</p>
+          <p className="text-sm font-semibold text-gray-400">
+            {sourceFilter === 'demo' ? 'No demo experiences found' : 'No workflow experiences yet.'}
+          </p>
+          <p className="text-xs text-gray-600 mt-1">
+            {sourceFilter === 'demo'
+              ? 'Demo memories can be added with the explicit seed action.'
+              : 'Run a workflow to create the first workflow experience.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map((exp) => (
-            <div
-              key={exp.experience_id}
-              onClick={() => setSelectedExp(exp)}
-              className={`border p-4 rounded-xl cursor-pointer transition flex flex-col justify-between group shadow-sm ${
-                exp.source === 'workflow' || exp.source === 'agent_run'
-                  ? 'bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-gray-900/90 border-indigo-500/60 hover:border-indigo-400'
-                  : 'bg-gray-900/60 border-gray-800 hover:border-gray-700'
-              }`}
-            >
-              <div>
-                <div className="flex items-center justify-between pb-2 border-b border-gray-800/60 mb-2">
-                  <div className="flex items-center space-x-2">
-                    <span className="font-mono text-xs font-bold text-indigo-400">
-                      [{exp.experience_id}]
-                    </span>
-                    {exp.source === 'workflow' || exp.source === 'agent_run' ? (
-                      <span className="flex items-center space-x-1 px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 rounded text-[10px] font-bold">
-                        <Brain className="w-3 h-3 text-indigo-400" />
-                        <span>WORKFLOW</span>
+          {filtered.map((exp) => {
+            const workflowMode = getWorkflowExperienceMode(exp);
+            return (
+              <div
+                key={exp.experience_id}
+                onClick={() => setSelectedExp(exp)}
+                className={`border p-4 rounded-xl cursor-pointer transition flex flex-col justify-between group shadow-sm ${
+                  exp.source === 'workflow' || exp.source === 'agent_run'
+                    ? 'bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-gray-900/90 border-indigo-500/60 hover:border-indigo-400'
+                    : 'bg-gray-900/60 border-gray-800 hover:border-gray-700'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between pb-2 border-b border-gray-800/60 mb-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-mono text-xs font-bold text-indigo-400">
+                        [{exp.experience_id}]
                       </span>
-                    ) : (
-                      <span className="flex items-center space-x-1 px-2 py-0.5 bg-gray-800 text-gray-400 border border-gray-700 rounded text-[10px] font-bold">
-                        <Database className="w-3 h-3" />
-                        <span>DEMO</span>
-                      </span>
-                    )}
+                      {exp.source === 'workflow' || exp.source === 'agent_run' ? (
+                        <>
+                          <span className="flex items-center space-x-1 px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 rounded text-[10px] font-bold">
+                            <Brain className="w-3 h-3 text-indigo-400" />
+                            <span>WORKFLOW</span>
+                          </span>
+                          {workflowMode && (
+                            <span
+                              className={`rounded border px-2 py-0.5 text-[10px] font-bold ${
+                                workflowMode === 'memory-informed'
+                                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                                  : 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+                              }`}
+                            >
+                              {workflowMode === 'memory-informed' ? 'HINDSIGHT-INFORMED' : 'BASELINE'}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="flex items-center space-x-1 px-2 py-0.5 bg-gray-800 text-gray-400 border border-gray-700 rounded text-[10px] font-bold">
+                          <Database className="w-3 h-3" />
+                          <span>DEMO</span>
+                        </span>
+                      )}
                   </div>
 
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      exp.outcome === 'FAILURE'
-                        ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                        : exp.outcome === 'SUCCESS'
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                    }`}
-                  >
-                    {exp.outcome}
-                  </span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        exp.outcome === 'FAILURE'
+                          ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                          : exp.outcome === 'SUCCESS'
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      }`}
+                    >
+                      {exp.outcome}
+                    </span>
+                  </div>
+
+                  <h3 className="font-bold text-sm text-gray-200 group-hover:text-indigo-300 transition">
+                    {exp.context}
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-1 line-clamp-2">{exp.lesson}</p>
                 </div>
 
-                <h3 className="font-bold text-sm text-gray-200 group-hover:text-indigo-300 transition">
-                  {exp.context}
-                </h3>
-                <p className="text-xs text-gray-400 mt-1 line-clamp-2">{exp.lesson}</p>
-              </div>
-
-              <div className="mt-4 pt-2 border-t border-gray-800/60 flex items-center justify-between text-[11px] text-gray-500">
-                <div className="flex items-center space-x-1">
-                  <Tag className="w-3 h-3 text-gray-600" />
-                  <span>{exp.service_name}</span>
-                  {exp.workflow_id && <span className="font-mono">· {exp.workflow_id}</span>}
-                </div>
-                <div className="flex items-center text-indigo-400 font-medium group-hover:translate-x-1 transition-transform">
-                  <span>View Details</span>
-                  <ChevronRight className="w-4 h-4 ml-0.5" />
+                <div className="mt-4 pt-2 border-t border-gray-800/60 flex items-center justify-between text-[11px] text-gray-500">
+                  <div className="flex items-center space-x-1">
+                    <Tag className="w-3 h-3 text-gray-600" />
+                    <span>{exp.service_name}</span>
+                    {exp.workflow_id && <span className="font-mono">· {exp.workflow_id}</span>}
+                  </div>
+                  <div className="flex items-center text-indigo-400 font-medium group-hover:translate-x-1 transition-transform">
+                    <span>View Details</span>
+                    <ChevronRight className="w-4 h-4 ml-0.5" />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

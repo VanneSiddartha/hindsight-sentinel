@@ -14,7 +14,6 @@ from app.risk.risk_engine import assess_workflow_risk
 @pytest.fixture
 def api_client(monkeypatch):
     monkeypatch.setenv("HINDSIGHT_API_KEY", "")
-    monkeypatch.setattr("app.main.seed_hindsight_experiences", lambda: 0)
     with TestClient(app) as client:
         yield client
 

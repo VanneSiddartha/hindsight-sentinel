@@ -58,7 +58,7 @@ EVAL_SCENARIOS = [
 
 def run_evaluation_benchmark():
     print("=================================================================")
-    print(" Hindsight Sentinel Evaluation Harness — Real Benchmark Execution ")
+    print(" AgentVault Evaluation Harness — Real Benchmark Execution       ")
     print("=================================================================")
     
     # Ensure memory vault is seeded
@@ -92,8 +92,8 @@ def run_evaluation_benchmark():
         })
         print(f"  - [{sc['id']}] {sc['title']}: Risk={res.risk_level}, Status={res.status}")
 
-    # 2. Run Sentinel (Recall ON)
-    print("\n[Phase 2/2] Running Sentinel Benchmark (Hindsight Memory ON)...")
+    # 2. Run AgentVault (Recall ON)
+    print("\n[Phase 2/2] Running AgentVault Benchmark (Hindsight Memory ON)...")
     repeated_mistakes_sentinel = 0
     correct_retrievals = 0
     interceptions = 0
@@ -160,7 +160,7 @@ def run_evaluation_benchmark():
     csv_path = os.path.join(data_dir, "eval_results.csv")
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["Scenario ID", "Title", "Baseline Risk", "Baseline Status", "Sentinel Risk", "Sentinel Status", "Memories Recalled", "Interception Passed"])
+        writer.writerow(["Scenario ID", "Title", "Baseline Risk", "Baseline Status", "AgentVault Risk", "AgentVault Status", "Memories Recalled", "Interception Passed"])
         for b, s in zip(baseline_results, sentinel_results):
             writer.writerow([
                 b["scenario_id"],

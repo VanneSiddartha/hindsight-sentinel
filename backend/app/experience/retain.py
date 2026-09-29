@@ -60,15 +60,54 @@ def list_stored_experiences() -> List[ExperienceModel]:
         rows = connection.execute(
             "SELECT payload FROM experiences ORDER BY timestamp DESC, experience_id"
         ).fetchall()
-    experiences = [ExperienceModel.model_validate_json(row["payload"]) for row in rows]
+    experiences: List[ExperienceModel] = []
+    seen_workflow_ids = set()
+    for row in rows:
+        experience = ExperienceModel.model_validate_json(row["payload"])
+        if experience.source in {"workflow", "agent_run"} and experience.workflow_id:
+            if experience.workflow_id in seen_workflow_ids:
+                logger.warning(
+                    "Found duplicate workflow experiences for workflow_id=%s; returning one record.",
+                    experience.workflow_id,
+                )
+                continue
+            seen_workflow_ids.add(experience.workflow_id)
+        experiences.append(experience)
     LOCAL_EXPERIENCE_VAULT.update(
         {experience.experience_id: experience for experience in experiences}
     )
     return experiences
 
 
-def _save_experience(experience: ExperienceModel) -> bool:
+def _save_experience(
+    experience: ExperienceModel,
+) -> tuple[bool, Optional[ExperienceModel]]:
     with _connect() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        existing_row = connection.execute(
+            """
+            SELECT payload FROM experiences
+            WHERE experience_id = ?
+            """,
+            (experience.experience_id,),
+        ).fetchone()
+        if (
+            existing_row is None
+            and experience.source in {"workflow", "agent_run"}
+            and experience.workflow_id
+        ):
+            existing_row = connection.execute(
+                """
+                SELECT payload FROM experiences
+                WHERE workflow_id = ? AND source IN ('workflow', 'agent_run')
+                ORDER BY timestamp DESC, experience_id
+                LIMIT 1
+                """,
+                (experience.workflow_id,),
+            ).fetchone()
+        if existing_row is not None:
+            return False, ExperienceModel.model_validate_json(existing_row["payload"])
+
         cursor = connection.execute(
             """
             INSERT OR IGNORE INTO experiences
@@ -85,7 +124,36 @@ def _save_experience(experience: ExperienceModel) -> bool:
                 experience.hindsight_status,
             ),
         )
-    return cursor.rowcount == 1
+        if cursor.rowcount != 1:
+            existing_row = connection.execute(
+                "SELECT payload FROM experiences WHERE experience_id = ?",
+                (experience.experience_id,),
+            ).fetchone()
+            if existing_row is not None:
+                return False, ExperienceModel.model_validate_json(existing_row["payload"])
+    return True, None
+
+
+def _already_retained_result(existing: ExperienceModel) -> Dict[str, Any]:
+    LOCAL_EXPERIENCE_VAULT[existing.experience_id] = existing
+    if existing.source in {"workflow", "agent_run"}:
+        logger.info(
+            "WORKFLOW EXPERIENCE workflow_id=%s experience_id=%s source=%s action=skipped reason=already_exists",
+            existing.workflow_id,
+            existing.experience_id,
+            existing.source,
+        )
+    return {
+        "status": "retained",
+        "experience_id": existing.experience_id,
+        "created": False,
+        "metadata_saved": existing.metadata_status == "persisted",
+        "metadata_status": existing.metadata_status,
+        "remote_synced": existing.hindsight_status == "retained",
+        "hindsight_status": existing.hindsight_status,
+        "message": "This experience was already stored; no duplicate Hindsight retain was sent.",
+        "vault_total": len(LOCAL_EXPERIENCE_VAULT),
+    }
 
 
 def _update_experience(experience: ExperienceModel) -> None:
@@ -134,8 +202,6 @@ def get_hindsight_client():
 
 def retain_experience(experience: ExperienceModel) -> Dict[str, Any]:
     """Persist experience metadata locally and retain it in Hindsight when configured."""
-    LOCAL_EXPERIENCE_VAULT[experience.experience_id] = experience
-
     try:
         existing = get_stored_experience(experience.experience_id)
     except (OSError, sqlite3.Error) as error:
@@ -147,41 +213,20 @@ def retain_experience(experience: ExperienceModel) -> Dict[str, Any]:
         )
 
     if existing is not None:
-        LOCAL_EXPERIENCE_VAULT[experience.experience_id] = existing
-        return {
-            "status": "retained",
-            "experience_id": existing.experience_id,
-            "metadata_saved": existing.metadata_status == "persisted",
-            "metadata_status": existing.metadata_status,
-            "remote_synced": existing.hindsight_status == "retained",
-            "hindsight_status": existing.hindsight_status,
-            "message": "This experience ID was already stored; no duplicate Hindsight retain was sent.",
-            "vault_total": len(LOCAL_EXPERIENCE_VAULT),
-        }
+        return _already_retained_result(existing)
 
     experience.metadata_status = "persisted"
     experience.hindsight_status = "pending"
     metadata_saved = False
     try:
-        metadata_saved = _save_experience(experience)
-        if not metadata_saved:
-            existing = get_stored_experience(experience.experience_id)
-            if existing is not None:
-                LOCAL_EXPERIENCE_VAULT[experience.experience_id] = existing
-                return {
-                    "status": "retained",
-                    "experience_id": existing.experience_id,
-                    "metadata_saved": existing.metadata_status == "persisted",
-                    "metadata_status": existing.metadata_status,
-                    "remote_synced": existing.hindsight_status == "retained",
-                    "hindsight_status": existing.hindsight_status,
-                    "message": "This experience ID was already stored; no duplicate Hindsight retain was sent.",
-                    "vault_total": len(LOCAL_EXPERIENCE_VAULT),
-                }
+        metadata_saved, existing = _save_experience(experience)
+        if existing is not None:
+            return _already_retained_result(existing)
     except (OSError, sqlite3.Error) as error:
         experience.metadata_status = "temporary"
         logger.exception("Could not persist experience %s metadata: %s", experience.experience_id, error)
 
+    LOCAL_EXPERIENCE_VAULT[experience.experience_id] = experience
     bank_id = os.getenv("HINDSIGHT_BANK_ID", "hindsight_sentinel_bank")
     retained_remote = False
     hindsight_status = "not_configured"
@@ -289,9 +334,21 @@ def retain_experience(experience: ExperienceModel) -> Dict[str, Any]:
     elif not metadata_saved:
         message = "Hindsight retained the experience, but local metadata could not be persisted."
 
+    created = metadata_saved or retained_remote
+    if experience.source in {"workflow", "agent_run"}:
+        logger.info(
+            "WORKFLOW EXPERIENCE workflow_id=%s experience_id=%s source=%s action=%s reason=%s",
+            experience.workflow_id,
+            experience.experience_id,
+            experience.source,
+            "created" if created else "skipped",
+            "workflow_completed" if created else "persistence_failed",
+        )
+
     return {
         "status": "retained" if metadata_saved or retained_remote else "temporary",
         "experience_id": experience.experience_id,
+        "created": created,
         "metadata_saved": metadata_saved,
         "metadata_status": experience.metadata_status,
         "remote_synced": retained_remote,

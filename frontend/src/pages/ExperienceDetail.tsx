@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExperienceModel } from '../services/api';
+import { ExperienceModel, getWorkflowExperienceMode } from '../services/api';
 import { ArrowLeft, History, Tag, AlertTriangle, Lightbulb } from 'lucide-react';
 
 interface ExperienceDetailProps {
@@ -8,6 +8,8 @@ interface ExperienceDetailProps {
 }
 
 export default function ExperienceDetail({ experience, onBack }: ExperienceDetailProps) {
+  const workflowMode = getWorkflowExperienceMode(experience);
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <button
@@ -29,6 +31,17 @@ export default function ExperienceDetail({ experience, onBack }: ExperienceDetai
               <span className="rounded border border-gray-700 bg-gray-800 px-2 py-0.5 text-[10px] uppercase text-gray-300">
                 {experience.source === 'workflow' || experience.source === 'agent_run' ? 'Workflow' : 'Demo'}
               </span>
+              {workflowMode && (
+                <span
+                  className={`rounded border px-2 py-0.5 text-[10px] font-bold uppercase ${
+                    workflowMode === 'memory-informed'
+                      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                      : 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+                  }`}
+                >
+                  {workflowMode === 'memory-informed' ? 'Hindsight-informed run' : 'Baseline run'}
+                </span>
+              )}
             </div>
             <h2 className="text-xl font-bold text-gray-100">{experience.context}</h2>
             {experience.workflow_id && (

@@ -1,16 +1,16 @@
-# Hindsight Sentinel — Comprehensive Master Technical Report
+# AgentVault — Comprehensive Master Technical Report
 
 ---
 
 ## 1. Executive Summary & Mission Overview
 
-**Hindsight Sentinel** is an open-source agentic workflow and risk intelligence platform built for modern software engineering teams and autonomous DevOps deployment pipelines.
+**AgentVault** is an open-source agentic workflow and risk intelligence platform built for modern software engineering teams and autonomous DevOps deployment pipelines.
 
 ### The Problem
 As AI agents gain autonomy in writing code, updating Kubernetes manifests, and deploying services, they frequently repeat past production mistakes. Traditional CI/CD tools catch syntax errors, but they have zero memory of organizational postmortems or past outage root causes. When an agent strips a legacy header or omits a connection timeout retry for the second time, it causes repeated downtime.
 
 ### The Solution
-Hindsight Sentinel solves this by introducing a **closed-loop organizational experience memory** powered by **Vectorize Hindsight**. Rather than acting as a static storage layer, Hindsight Sentinel retrieves relevant postmortems **BEFORE** AI agents begin planning. The agents analyze past lessons, proactively inject risk mitigation fallbacks into their decisions and code patches, and prevent repeated failures. When a new incident occurs, the system automatically extracts a structured experience memory and retains it in Hindsight for future tasks.
+AgentVault solves this by introducing a **closed-loop organizational experience memory** powered by **Vectorize Hindsight**. Rather than acting as a static storage layer, AgentVault retrieves relevant postmortems **BEFORE** AI agents begin planning. The agents analyze past lessons, proactively inject risk mitigation fallbacks into their decisions and code patches, and prevent repeated failures. When a new incident occurs, the system automatically extracts a structured experience memory and retains it in Hindsight for future tasks.
 
 ---
 
@@ -159,7 +159,7 @@ class ExperienceModel(BaseModel):
 
 ## 6. Explainable Risk Engine Rules (`risk_engine.py`)
 
-Hindsight Sentinel avoids black-box ambiguity by enforcing an explainable rule engine:
+AgentVault avoids black-box ambiguity by enforcing an explainable rule engine:
 
 - **NORMAL (Green):** 0 matching past failure patterns. Mandatory phrase: `"No known risk detected."`
 - **CAUTION (Yellow):** 1 related past experience match.
@@ -196,9 +196,9 @@ Hindsight Sentinel avoids black-box ambiguity by enforcing an explainable rule e
 
 ## 8. Empirical Evaluation Benchmark Results
 
-The evaluation harness ([`run_eval.py`](file:///c:/BOT/backend/tests/evaluation/run_eval.py)) executed 6 synthetic production incident scenarios comparing Baseline (Memory OFF) vs. Sentinel (Memory ON):
+The evaluation harness ([`run_eval.py`](file:///c:/BOT/backend/tests/evaluation/run_eval.py)) executed 6 synthetic production incident scenarios comparing Baseline (Memory OFF) vs. AgentVault (Memory ON):
 
-| Benchmark Metric | Baseline (Memory OFF) | Sentinel (Hindsight Memory ON) | Improvement |
+| Benchmark Metric | Baseline (Memory OFF) | AgentVault (Hindsight Memory ON) | Improvement |
 |---|---|---|---|
 | **Correct Retrieval Rate** | N/A | **100.0%** (6/6 scenarios matched) | Perfect Match |
 | **Risk Interception Rate** | N/A | **100.0%** (6/6 risks intercepted) | 100% Gated |

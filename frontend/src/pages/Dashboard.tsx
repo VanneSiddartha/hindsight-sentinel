@@ -334,7 +334,7 @@ export default function Dashboard() {
             </h1>
             <p className="mt-1 text-xs text-gray-400">
               {step === 'form'
-                ? 'Add a little context so Sentinel can assess this workflow against relevant experience.'
+                ? 'Add a little context so AgentVault can assess this workflow against relevant experience.'
                 : 'Confirm the workflow details and Hindsight behavior before starting.'}
             </p>
           </div>

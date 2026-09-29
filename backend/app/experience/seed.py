@@ -1,7 +1,7 @@
 import logging
 from typing import List
 from app.models.experience import ExperienceModel
-from app.experience.retain import get_stored_experience, retain_experience
+from app.experience.retain import retain_experience
 
 logger = logging.getLogger(__name__)
 
@@ -100,13 +100,20 @@ SEED_EXPERIENCES = [
 
 def seed_hindsight_experiences() -> int:
     """
-    Seeds demo incident memories once, without replacing workflow-generated records.
+    Seeds demo incident memories when explicitly requested, without replacing workflow records.
     """
     count = 0
     for exp in SEED_EXPERIENCES:
-        if get_stored_experience(exp.experience_id) is not None:
-            continue
-        retain_experience(exp)
-        count += 1
-    logger.info("Added %s new demo memories to the experience store.", count)
+        result = retain_experience(exp)
+        action = "created" if result["created"] else "skipped"
+        reason = "explicit_seed" if result["created"] else "already_exists"
+        logger.info(
+            "DEMO SEED experience_id=%s source=demo action=%s reason=%s",
+            exp.experience_id,
+            action,
+            reason,
+        )
+        if result["created"]:
+            count += 1
+    logger.info("Explicit demo seed completed; created %s new demo memories.", count)
     return count
